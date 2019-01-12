@@ -1,3 +1,5 @@
+import           Data.List  (intercalate)
+import           Data.Maybe (catMaybes)
 import           Data.Tree
 
 type Name = Int
@@ -9,6 +11,9 @@ data Match = Match Participant Participant
  deriving (Eq, Show)
 
 type Tournament = Tree Match
+
+data Labeled a = Labeled Int a
+  deriving (Eq, Show)
 
 leafMatchCount :: [Name] -> Int
 leafMatchCount participants =
@@ -69,10 +74,46 @@ pruneTournament (Node r ms) =
 leafNode :: a -> Tree a
 leafNode = flip Node []
 
+labelTree :: Tournament -> Tree (Labeled Match)
+labelTree t =
+  decorate t $ reverse [0..length t]
+
+  where
+    decorate (Node m ms) (label : labels) =
+      Node (Labeled label m) $ decorateForest ms labels
+
+    decorateForest nodes l =
+      case nodes of
+        x : xs ->
+          let (l', l'') = splitAt (length x) l
+          in decorate x l' : decorateForest xs l''
+        [] -> []
+
+vizNode :: Tree (Labeled Match) -> String
+vizNode node =
+  "graph {\n" ++ (intercalate "\n" $ fmap showRelation $ relations) ++ "\n}"
+
+  where
+    relations = catMaybes $ flatten $ vizNode' node
+
+    showNode n = "m" ++ show n
+
+    showRelation (n, ns) =
+      "  " ++ showNode n ++ " -- {" ++ (intercalate " " $ (fmap showNode ns)) ++ "}"
+
+    label (Node (Labeled i' _) _) = i'
+
+    childLabels = fmap label
+
+    vizNode' n@(Node (Labeled i m) ms) =
+      case ms of
+        [] -> Node Nothing []
+        ms -> Node (Just (label n, childLabels ms)) $ fmap vizNode' ms
+
 showTournament :: Tournament -> IO ()
 showTournament tournament =
   putStrLn $ drawTree $ fmap showMatch tournament
-  where showMatch (Match p1 p2) = "[" ++ showParticipant p1 ++ " / " ++ showParticipant p2 ++ "]"
+  where showMatch (Match p1 p2) = "[" ++ showParticipant p1 ++ " vs " ++ showParticipant p2 ++ "]"
         showParticipant p =
           case p of
             Blank         -> "?"
@@ -81,5 +122,5 @@ showTournament tournament =
 
 main = do
   let tournament = makeTournament $ makeBrackets [1..13]
-  showTournament tournament
-  showTournament $ pruneTournament tournament
+  -- showTournament $ pruneTournament tournament
+  putStrLn $ drawTree $ fmap show $ labelTree $ pruneTournament tournament
