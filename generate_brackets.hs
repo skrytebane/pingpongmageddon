@@ -18,7 +18,7 @@ leafMatchCount participants =
 
 makeBrackets :: [Name] -> [Match]
 makeBrackets participants =
-  brackets' startSlots (map Participant participants)
+  brackets' startSlots (fmap Participant participants)
   where
     startSlots = leafMatchCount participants
     brackets' slots bracket =
@@ -57,6 +57,15 @@ makeTournament bracket =
         Match Bye p -> p
         m           -> Blank
 
+pruneTournament :: Tournament -> Tournament
+pruneTournament (Node r ms) =
+  Node r (fmap pruneTournament $ filter isBye ms)
+  where isBye (Node m _) =
+          case m of
+            Match Bye _ -> False
+            Match _ Bye -> False
+            _           -> True
+
 leafNode :: a -> Tree a
 leafNode = flip Node []
 
@@ -70,4 +79,7 @@ showTournament tournament =
             Bye           -> "!"
             Participant n -> show n
 
-main = showTournament $ makeTournament $ makeBrackets [1..5]
+main = do
+  let tournament = makeTournament $ makeBrackets [1..13]
+  showTournament tournament
+  showTournament $ pruneTournament tournament
