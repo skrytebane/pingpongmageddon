@@ -1,7 +1,6 @@
 import           Data.Tree
 
 type Name = Int
-type MatchId = Int
 
 data Participant = Participant Name | Bye | Blank
   deriving (Eq, Show)
@@ -11,16 +10,13 @@ data Match = Match Participant Participant
 
 type Tournament = Tree Match
 
+leafMatchCount :: [Name] -> Int
 leafMatchCount participants =
-  2 ^ (tournamentHeight participants - 1)
+  2 ^ (height - 1)
+  where height = ceiling $ logBase 2 count
+        count = fromIntegral $ length participants
 
-totalMatches participants =
-  (2 ^ tournamentHeight participants) - 1
-
-tournamentHeight participants =
-  ceiling $ logBase 2 count
-  where count = fromIntegral $ length participants
-
+makeBrackets :: [Name] -> [Match]
 makeBrackets participants =
   brackets' startSlots (map Participant participants)
   where
@@ -39,6 +35,31 @@ makeBrackets participants =
             else
               Match x y : brackets' remainingSlots cs
 
+makeTournament :: [Match] -> Tournament
+makeTournament bracket =
+  makeTournament' $ fmap leafNode bracket
+
+  where
+    makeTournament' forest =
+      case forest of
+        n : [] -> n
+        ns     -> makeTournament' $ nextRound ns
+
+    nextRound forest =
+      case forest of
+        n1@(Node m1 _) : n2@(Node m2 _) : ms ->
+          Node (Match (winner m1) (winner m2)) [n1, n2] : nextRound ms
+        _ -> []
+
+    winner match =
+      case match of
+        Match p Bye -> p
+        Match Bye p -> p
+        m           -> Blank
+
+leafNode :: a -> Tree a
+leafNode = flip Node []
+
 showTournament :: Tournament -> IO ()
 showTournament tournament =
   putStrLn $ drawTree $ fmap showMatch tournament
@@ -49,40 +70,4 @@ showTournament tournament =
             Bye           -> "!"
             Participant n -> show n
 
-makeTournament :: [Match] -> Tournament
-makeTournament bracket =
-  allRounds $ forests bracket
-
-  where
-    allRounds forest =
-      case forest of
-        n : [] -> n
-        ns     -> allRounds $ nextRound ns
-    forests = fmap rootNode
-    rootNode m = Node m []
-    nextRound forest =
-      case forest of
-        n1@(Node m1 _) : n2@(Node m2 _) : ms ->
-          Node (Match (winner m1) (winner m2)) [n1, n2] : nextRound ms
-        _ -> []
-    winner match =
-      case match of
-        Match p Bye -> p
-        Match Bye p -> p
-        m           -> Blank
-
-tournamentParticipants :: [Name]
-tournamentParticipants = [1..13]
-
-foo parts =
-  let
-    slots = leafMatchCount parts
-    leafbracket = makeBrackets parts
-  in
-    do
-      putStrLn $ "To fill: " ++ show slots
-      putStrLn $ "Matches: " ++ (show $ length leafbracket)
-      print leafbracket
-
-main =
-  foo tournamentParticipants
+main = showTournament $ makeTournament $ makeBrackets [1..5]
