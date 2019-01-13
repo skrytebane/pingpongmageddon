@@ -1,6 +1,8 @@
+module Main where
+
 import           Data.List  (intercalate)
 import           Data.Maybe (catMaybes)
-import           Data.Tree
+import           Data.Tree  (Tree (Node), drawTree, flatten)
 
 type Name = Int
 
@@ -14,6 +16,9 @@ type Tournament = Tree Match
 
 data Labeled a = Labeled Int a
   deriving (Eq, Show)
+
+label :: Labeled a -> Int
+label (Labeled a _) = a
 
 leafMatchCount :: [Name] -> Int
 leafMatchCount participants =
@@ -42,7 +47,7 @@ makeBrackets participants =
 
 makeTournament :: [Match] -> Tournament
 makeTournament bracket =
-  makeTournament' $ fmap leafNode bracket
+  makeTournament' $ leafNode <$> bracket
 
   where
     makeTournament' forest =
@@ -64,7 +69,7 @@ makeTournament bracket =
 
 pruneTournament :: Tournament -> Tournament
 pruneTournament (Node r ms) =
-  Node r (fmap pruneTournament $ filter isBye ms)
+  Node r (pruneTournament <$> filter isBye ms)
   where isBye (Node m _) =
           case m of
             Match Bye _ -> False
@@ -91,9 +96,19 @@ labelTree t =
 
 vizNode :: Tree (Labeled Match) -> String
 vizNode node =
-  "graph {\n" ++ (intercalate "\n" $ fmap showRelation $ relations) ++ "\n}"
+  "graph {\n" ++
+  (intercalate "\n" $ flatten $ nodeConfig <$> node) ++
+  "\n\n" ++
+  (intercalate "\n" $ showRelation <$> relations)
+  ++ "\n}"
 
   where
+    nodeConfig (Labeled l m) = "  " ++
+      showNode l ++
+      " [" ++
+      "label=\"" ++ showMatch m ++ "\" " ++
+      "shape=\"record\"];"
+
     relations = catMaybes $ flatten $ vizNode' node
 
     showNode n = "m" ++ show n
@@ -101,26 +116,25 @@ vizNode node =
     showRelation (n, ns) =
       "  " ++ showNode n ++ " -- {" ++ (intercalate " " $ (fmap showNode ns)) ++ "}"
 
-    label (Node (Labeled i' _) _) = i'
+    nodeLabel (Node l _) = label l
 
-    childLabels = fmap label
+    childLabels = fmap nodeLabel
 
     vizNode' n@(Node (Labeled i m) ms) =
       case ms of
         [] -> Node Nothing []
-        ms -> Node (Just (label n, childLabels ms)) $ fmap vizNode' ms
+        ms -> Node (Just (nodeLabel n, childLabels ms)) $ fmap vizNode' ms
 
 showTournament :: Tournament -> IO ()
 showTournament tournament =
   putStrLn $ drawTree $ fmap showMatch tournament
-  where showMatch (Match p1 p2) = "[" ++ showParticipant p1 ++ " vs " ++ showParticipant p2 ++ "]"
-        showParticipant p =
-          case p of
-            Blank         -> "?"
-            Bye           -> "!"
-            Participant n -> show n
+
+showMatch m =
+  case m of
+    (Match (Participant p1) (Participant p2)) -> show p1 ++ "/" ++ show p2
+    _                                         -> ""
 
 main = do
   let tournament = makeTournament $ makeBrackets [1..13]
-  -- showTournament $ pruneTournament tournament
-  putStrLn $ drawTree $ fmap show $ labelTree $ pruneTournament tournament
+  showTournament $ pruneTournament tournament
+  -- putStrLn $ drawTree $ fmap show $ labelTree $ pruneTournament tournament
