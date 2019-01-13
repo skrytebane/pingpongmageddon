@@ -1,8 +1,12 @@
 module Main where
 
-import           Data.List  (intercalate)
-import           Data.Maybe (catMaybes)
-import           Data.Tree  (Tree (Node), drawTree, flatten)
+import           Data.List     (intercalate)
+import           Data.Map      (Map (..), (!))
+import qualified Data.Map      as M
+import           Data.Maybe    (catMaybes)
+import           Data.Tree     (Tree (Node), drawTree, flatten)
+import           System.Random (RandomGen (..), genRange, getStdRandom,
+                                mkStdGen, random, randomR)
 
 type Name = String
 
@@ -94,9 +98,11 @@ labelTree t =
           in decorate x l' : decorateForest xs l''
         [] -> []
 
-vizNode :: Tree (Labeled Match) -> String
-vizNode node =
-  "graph {\n" ++
+makeGraphvizDot :: String -> Int -> Tree (Labeled Match) -> String
+makeGraphvizDot name seed node =
+  "graph T {\n" ++
+  "  // " ++ name ++ "\n" ++
+  "  // Seed: " ++ show seed ++ "\n\n" ++
   (intercalate "\n" $ flatten $ nodeConfig <$> node) ++
   "\n\n" ++
   (intercalate "\n" $ showRelation <$> relations)
@@ -107,7 +113,7 @@ vizNode node =
       showNode l ++
       " [" ++
       "label=\"{" ++ showMatch m ++ "}\" " ++
-      "shape=\"record\"];"
+      "shape=\"record\" penwidth=2 fontname=\"Helvetica\"];"
 
     relations = catMaybes $ flatten $ vizNode' node
 
@@ -128,18 +134,42 @@ vizNode node =
 showTournament :: Tournament -> IO ()
 showTournament tournament = putStrLn $ drawTree $ showMatch <$> tournament
 
-showMatch m =
-  case m of
-    Match (Participant p1) (Participant p2) -> p1 ++ "|" ++ p2
-    Match _ (Participant p)                 -> "|" ++ p
-    Match (Participant p) _                 -> p ++ "|"
-    _                                       -> "|"
+showMatch (Match p1 p2) =
+  showSide p1 ++ "|" ++ showSide p2
+  where showSide s =
+          case s of
+            Participant p -> p
+            _             -> ""
+
+-- Fisher-Yates shuffle from https://wiki.haskell.org/Random_shuffle#Purely_functional
+fisherYatesStep :: RandomGen g => (Map Int a, g) -> (Int, a) -> (Map Int a, g)
+fisherYatesStep (m, gen) (i, x) = ((M.insert j x . M.insert i (m ! j)) m, gen')
+  where
+    (j, gen') = randomR (0, i) gen
+
+fisherYates :: RandomGen g => g -> [a] -> ([a], g)
+fisherYates gen [] = ([], gen)
+fisherYates gen l =
+  toElems $ foldl fisherYatesStep (initial (head l) gen) (numerate (tail l))
+  where
+    toElems (x, y) = (M.elems x, y)
+    numerate = zip [1..]
+    initial x gen = (M.singleton 0 x, gen)
+
+shufflePlayers :: Int -> [Name] -> [Name]
+shufflePlayers seed players =
+  let
+    gen = mkStdGen seed
+    (shuffled, _) = fisherYates gen players
+  in
+    shuffled
 
 samplePlayers = ["Donald", "Dolly", "Ole", "Dole", "Doffen", "Hetti", "Netti",
                 "Letti", "Skrue", "Magica", "Fantonald", "Anton", "Rikerud"]
 
 main = do
-  let tournament = pruneTournament $ makeTournament $ makeBrackets samplePlayers
+  seed <- getStdRandom random
+  let tournament = pruneTournament $ makeTournament $ makeBrackets $ shufflePlayers seed samplePlayers
   --showTournament $ pruneTournament tournament
   --putStrLn $ drawTree $ fmap show $ labelTree $ pruneTournament tournament
-  putStrLn $ vizNode $ labelTree $ tournament
+  putStrLn $ makeGraphvizDot "Pingpongmageddon #1" seed $ labelTree $ tournament
