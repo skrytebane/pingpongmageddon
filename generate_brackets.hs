@@ -1,12 +1,13 @@
 module Main where
 
-import           Data.List     (intercalate)
-import           Data.Map      (Map (..), (!))
-import qualified Data.Map      as M
-import           Data.Maybe    (catMaybes)
-import           Data.Tree     (Tree (Node), drawTree, flatten)
-import           System.Random (RandomGen (..), genRange, getStdRandom,
-                                mkStdGen, random, randomR)
+import           Data.List          (intercalate)
+import           Data.Map           (Map (..), (!))
+import qualified Data.Map           as M
+import           Data.Maybe         (catMaybes)
+import           Data.Tree          (Tree (Node), drawTree, flatten)
+import           System.Environment (getArgs)
+import           System.Random      (RandomGen (..), genRange, getStdRandom,
+                                     mkStdGen, random, randomR)
 
 type Name = String
 
@@ -164,12 +165,9 @@ shufflePlayers seed players =
   in
     shuffled
 
-samplePlayers = ["Donald", "Dolly", "Ole", "Dole", "Doffen", "Hetti", "Netti",
-                "Letti", "Skrue", "Magica", "Fantonald", "Anton", "Rikerud"]
-
 main = do
   seed <- getStdRandom random
-  let tournament = pruneTournament $ makeTournament $ makeBrackets $ shufflePlayers seed samplePlayers
-  --showTournament $ pruneTournament tournament
-  --putStrLn $ drawTree $ fmap show $ labelTree $ pruneTournament tournament
-  putStrLn $ makeGraphvizDot "Pingpongmageddon #1" seed $ labelTree $ tournament
+  players <- lines <$> getContents
+  name : _ <- getArgs
+  let tournament = pruneTournament $ makeTournament $ makeBrackets $ shufflePlayers seed players
+  putStrLn $ makeGraphvizDot name seed $ labelTree $ tournament
