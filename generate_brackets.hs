@@ -113,7 +113,7 @@ makeGraphvizDot name seed node =
     nodeConfig (Labeled l m) = "  " ++
       showNode l ++
       " [" ++
-      "label=\"{" ++ showMatch m ++ "}\" " ++
+      "label=\"#" ++ show l ++ "|{" ++ showMatch m ++ "}\" " ++
       "shape=\"record\" penwidth=2 fontname=\"Helvetica\"];"
 
     relations = catMaybes $ flatten $ vizNode' node
