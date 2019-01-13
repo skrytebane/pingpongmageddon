@@ -4,7 +4,7 @@ import           Data.List  (intercalate)
 import           Data.Maybe (catMaybes)
 import           Data.Tree  (Tree (Node), drawTree, flatten)
 
-type Name = Int
+type Name = String
 
 data Participant = Participant Name | Bye | Blank
   deriving (Eq, Show)
@@ -106,7 +106,7 @@ vizNode node =
     nodeConfig (Labeled l m) = "  " ++
       showNode l ++
       " [" ++
-      "label=\"" ++ showMatch m ++ "\" " ++
+      "label=\"{" ++ showMatch m ++ "}\" " ++
       "shape=\"record\"];"
 
     relations = catMaybes $ flatten $ vizNode' node
@@ -114,7 +114,7 @@ vizNode node =
     showNode n = "m" ++ show n
 
     showRelation (n, ns) =
-      "  " ++ showNode n ++ " -- {" ++ (intercalate " " $ (fmap showNode ns)) ++ "}"
+      "  " ++ showNode n ++ " -- {" ++ (intercalate " " $ showNode <$> ns) ++ "}"
 
     nodeLabel (Node l _) = label l
 
@@ -123,18 +123,23 @@ vizNode node =
     vizNode' n@(Node (Labeled i m) ms) =
       case ms of
         [] -> Node Nothing []
-        ms -> Node (Just (nodeLabel n, childLabels ms)) $ fmap vizNode' ms
+        ms -> Node (Just (nodeLabel n, childLabels ms)) $ vizNode' <$> ms
 
 showTournament :: Tournament -> IO ()
-showTournament tournament =
-  putStrLn $ drawTree $ fmap showMatch tournament
+showTournament tournament = putStrLn $ drawTree $ showMatch <$> tournament
 
 showMatch m =
   case m of
-    (Match (Participant p1) (Participant p2)) -> show p1 ++ "/" ++ show p2
-    _                                         -> ""
+    Match (Participant p1) (Participant p2) -> p1 ++ "|" ++ p2
+    Match _ (Participant p)                 -> "|" ++ p
+    Match (Participant p) _                 -> p ++ "|"
+    _                                       -> "|"
+
+samplePlayers = ["Donald", "Dolly", "Ole", "Dole", "Doffen", "Hetti", "Netti",
+                "Letti", "Skrue", "Magica", "Fantonald", "Anton", "Rikerud"]
 
 main = do
-  let tournament = makeTournament $ makeBrackets [1..13]
-  showTournament $ pruneTournament tournament
-  -- putStrLn $ drawTree $ fmap show $ labelTree $ pruneTournament tournament
+  let tournament = pruneTournament $ makeTournament $ makeBrackets samplePlayers
+  --showTournament $ pruneTournament tournament
+  --putStrLn $ drawTree $ fmap show $ labelTree $ pruneTournament tournament
+  putStrLn $ vizNode $ labelTree $ tournament
