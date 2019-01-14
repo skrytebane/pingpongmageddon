@@ -1,13 +1,16 @@
+{-# OPTIONS_GHC -fno-warn-type-defaults #-}
+
 module Main where
 
 import           Data.List          (intercalate)
-import           Data.Map           (Map (..), (!))
+import           Data.Map           (Map, (!))
 import qualified Data.Map           as M
 import           Data.Maybe         (catMaybes)
 import           Data.Tree          (Tree (Node), drawTree, flatten)
 import           System.Environment (getArgs)
-import           System.Random      (RandomGen (..), genRange, getStdRandom,
-                                     mkStdGen, random, randomR)
+import           System.Exit        (die)
+import           System.Random      (RandomGen (..), getStdRandom, mkStdGen,
+                                     random, randomR)
 
 type Name = String
 
@@ -70,7 +73,7 @@ makeTournament bracket =
       case match of
         Match p Bye -> p
         Match Bye p -> p
-        m           -> Blank
+        _           -> Blank
 
 pruneTournament :: Tournament -> Tournament
 pruneTournament (Node r ms) =
@@ -89,8 +92,12 @@ labelTree t =
   decorate t $ reverse [0..length t]
 
   where
-    decorate (Node m ms) (label : labels) =
-      Node (Labeled label m) $ decorateForest ms labels
+    decorate n l =
+      case (n, l) of
+        (Node m ms, label' : labels) ->
+          Node (Labeled label' m) $ decorateForest ms labels
+        _ ->
+          undefined
 
     decorateForest nodes l =
       case nodes of
@@ -127,14 +134,15 @@ makeGraphvizDot name seed node =
 
     childLabels = fmap nodeLabel
 
-    vizNode' n@(Node (Labeled i m) ms) =
+    vizNode' n@(Node _ ms) =
       case ms of
-        [] -> Node Nothing []
-        ms -> Node (Just (nodeLabel n, childLabels ms)) $ vizNode' <$> ms
+        []  -> Node Nothing []
+        ms' -> Node (Just (nodeLabel n, childLabels ms')) $ vizNode' <$> ms'
 
 showTournament :: Tournament -> IO ()
 showTournament tournament = putStrLn $ drawTree $ showMatch <$> tournament
 
+showMatch :: Match -> String
 showMatch (Match p1 p2) =
   showSide p1 ++ "|" ++ showSide p2
   where showSide s =
@@ -155,7 +163,7 @@ fisherYates gen l =
   where
     toElems (x, y) = (M.elems x, y)
     numerate = zip [1..]
-    initial x gen = (M.singleton 0 x, gen)
+    initial x gen' = (M.singleton 0 x, gen')
 
 shufflePlayers :: Int -> [Name] -> [Name]
 shufflePlayers seed players =
@@ -165,9 +173,17 @@ shufflePlayers seed players =
   in
     shuffled
 
+parseArgs :: IO String
+parseArgs = do
+  args <- getArgs
+  case args of
+    [] -> die "Usage: generate_brackets <name>\n\nTakes a list of players on stdin.)"
+    x : _ -> return x
+
+main :: IO ()
 main = do
   seed <- getStdRandom random
   players <- lines <$> getContents
-  name : _ <- getArgs
+  name <- parseArgs
   let tournament = pruneTournament $ makeTournament $ makeBrackets $ shufflePlayers seed players
   putStrLn $ makeGraphvizDot name seed $ labelTree $ tournament
