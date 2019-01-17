@@ -1,7 +1,7 @@
 name:                pingpongmageddon
 version:             0.1.0.0
 synopsis:            Trivial single-elimination bracket generator
-license:             PublicDomain
+license:             MIT
 author:              Johannes Grødem
 maintainer:          johsgrd@gmail.com
 category:            Game
