@@ -1,41 +1,14 @@
-module GraphViz (makeGraphvizDot) where
+module GraphVizExport (makeGraphvizDot) where
 
 import           Data.List         (intercalate)
 import           Data.Maybe        (catMaybes)
 import           Data.Tree         (Tree (Node), flatten)
 
 import           SingleElimination
+import           TreeLabel
 
-data Labeled a = Labeled Int a
-  deriving (Eq, Show)
-
-labelTree :: Tournament -> Tree (Labeled Match)
-labelTree t =
-  decorate t $ reverse [0..length t]
-
-  where
-    decorate n l =
-      case (n, l) of
-        (Node m ms, label' : labels) ->
-          Node (Labeled label' m) $ decorateForest ms labels
-        _ ->
-          undefined
-
-    decorateForest nodes l =
-      case nodes of
-        x : xs ->
-          let (l', l'') = splitAt (length x) l
-          in decorate x l' : decorateForest xs l''
-        [] -> []
-
-showMatch :: Match -> String
-showMatch (Match p1 p2) =
-  showSide p1 ++ "|" ++ showSide p2
-  where showSide s =
-          case s of
-            Participant p -> p
-            _             -> ""
-
+-- | Given a name, a seed and a tournament, return a GraphViz
+-- DOT-file version of the tournament.
 makeGraphvizDot :: String -> Int -> Tournament -> String
 makeGraphvizDot name seed tournament =
   "graph T {\n" ++
@@ -68,3 +41,11 @@ makeGraphvizDot name seed tournament =
       case ms of
         []  -> Node Nothing []
         ms' -> Node (Just (nodeLabel n, nodeLabel <$> ms')) $ vizNode' <$> ms'
+
+showMatch :: Match -> String
+showMatch (Match p1 p2) =
+  showSide p1 ++ "|" ++ showSide p2
+  where showSide s =
+          case s of
+            Participant p -> p
+            _             -> ""

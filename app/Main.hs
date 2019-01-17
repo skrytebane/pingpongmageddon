@@ -8,7 +8,8 @@ import           System.Exit        (die)
 import           System.Random      (RandomGen (..), getStdRandom, mkStdGen,
                                      random, randomR)
 
-import           GraphViz
+import           GraphVizExport
+import           JsonExport
 import           SingleElimination
 
 -- Fisher-Yates shuffle from https://wiki.haskell.org/Random_shuffle#Purely_functional
@@ -58,4 +59,5 @@ main = do
   name <- parseArgs
   players <- getPlayers
   let tournament = pruneTournament $ makeTournament $ shufflePlayers seed players
-  putStrLn $ makeGraphvizDot name seed $ tournament
+  -- putStrLn $ makeGraphvizDot name seed tournament
+  putStrLn $ makeJson name seed tournament
