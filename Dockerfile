@@ -1,15 +1,21 @@
 FROM debian:9.6 as builder
 
-RUN apt-get update && apt-get install -y ghc libghc-random-dev && apt-get clean
+RUN apt-get update && apt-get install -y ghc libghc-random-dev cabal-install && apt-get clean
 
 RUN mkdir /pingpongmageddon
-COPY generate_brackets.hs /pingpongmageddon
-RUN ghc -Wall -optl-static -optl-pthread /pingpongmageddon/generate_brackets.hs
-RUN strip /pingpongmageddon/generate_brackets
+WORKDIR /pingpongmageddon
+COPY . /pingpongmageddon
+RUN cabal configure \
+        --disable-executable-dynamic \
+        --disable-shared \
+        --ghc-option=-optl=-static \
+        --ghc-option=-optl=-pthread
+RUN cabal build
 
 FROM alpine:3.8
 
-WORKDIR /root
-COPY --from=builder /pingpongmageddon/generate_brackets .
+COPY --from=builder \
+        /pingpongmageddon/dist/build/pingpongmageddon-exe/pingpongmageddon-exe \
+        /bin/pingpongmageddon
 
-CMD ["./generate_brackets"]
+CMD ["/bin/pingpongmageddon"]
