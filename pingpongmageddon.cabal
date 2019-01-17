@@ -1,0 +1,29 @@
+name:                pingpongmageddon
+version:             0.1.0.0
+synopsis:            Trivial single-elimination bracket generator
+license:             PublicDomain
+author:              Johannes Grødem
+maintainer:          johsgrd@gmail.com
+category:            Game
+build-type:          Simple
+extra-source-files:  ChangeLog.md
+cabal-version:       >=1.10
+
+library
+  exposed-modules:     SingleElimination
+                     , GraphViz
+  ghc-options:         -Wall
+  hs-source-dirs:      src
+  build-depends:       base
+                     , containers
+  default-language:    Haskell2010
+
+executable pingpongmageddon-exe
+  main-is:             Main.hs
+  build-depends:       base
+                     , random
+                     , containers
+                     , pingpongmageddon
+  ghc-options:         -Wall
+  hs-source-dirs:      app
+  default-language:    Haskell2010
