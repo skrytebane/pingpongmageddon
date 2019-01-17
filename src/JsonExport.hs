@@ -3,15 +3,16 @@
 module JsonExport where
 
 import           Data.Aeson
-import qualified Data.ByteString.Char8 as BC
-import qualified Data.ByteString.Lazy  as B
-import           Data.Tree             (Tree (Node))
+import qualified Data.ByteString.Lazy as B
+import qualified Data.Text            as T
+import           Data.Text.Encoding   (decodeUtf8)
+import           Data.Tree            (Tree (Node))
 
 import           SingleElimination
 
 makeJson :: String -> Int -> Tournament -> String
 makeJson name seed tree =
-  BC.unpack $ B.toStrict $ encode $ showTournament' tree
+  T.unpack $ decodeUtf8 $ B.toStrict $ encode $ showTournament' tree
 
   where
     showTournament' tree' =
