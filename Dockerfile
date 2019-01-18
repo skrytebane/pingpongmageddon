@@ -1,6 +1,8 @@
 FROM debian:9.6 as builder
 
-RUN apt-get update && apt-get install -y ghc libghc-random-dev libghc-aeson-dev cabal-install && apt-get clean
+RUN apt-get update && \
+    apt-get install -y ghc libghc-random-dev libghc-aeson-dev libghc-optparse-applicative-dev cabal-install && \
+    apt-get clean
 
 RUN mkdir /pingpongmageddon
 WORKDIR /pingpongmageddon

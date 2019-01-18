@@ -30,6 +30,7 @@ executable pingpongmageddon-exe
                      , containers
                      , bytestring
                      , pingpongmageddon
+                     , optparse-applicative
   ghc-options:         -Wall
   hs-source-dirs:      app
   default-language:    Haskell2010
