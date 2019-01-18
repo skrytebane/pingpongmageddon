@@ -1,6 +1,6 @@
 module Main where
 
-import           Data.List          (nub, null)
+import           Data.List          (nub, null, sort)
 import           Data.Map           (Map, (!))
 import qualified Data.Map           as M
 import           System.Environment (getArgs)
@@ -31,7 +31,7 @@ shufflePlayers :: Int -> [Name] -> [Name]
 shufflePlayers seed players =
   let
     gen = mkStdGen seed
-    (shuffled, _) = fisherYates gen players
+    (shuffled, _) = fisherYates gen $ sort players
   in
     shuffled
 
