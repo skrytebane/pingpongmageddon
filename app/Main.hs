@@ -71,7 +71,7 @@ parseOpts defaultSeed = P.execParser opts
   where
     opts = P.info (optParser <**> P.helper)
            ( P.fullDesc
-             <> P.progDesc "Generate a single-elimination tournament bracket"
+             <> P.progDesc "Generate a single-elimination tournament bracket from new-line separated contestant names provided in stdin."
              <> P.header "pingpongmageddon")
 
     optParser :: P.Parser CmdArgs
