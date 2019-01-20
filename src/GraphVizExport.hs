@@ -45,7 +45,22 @@ makeGraphvizDot name seed tournament =
 showMatch :: Match -> String
 showMatch (Match p1 p2) =
   showSide p1 ++ "|" ++ showSide p2
-  where showSide s =
-          case s of
-            Participant p -> p
-            _             -> ""
+
+  where
+    showSide s =
+      case s of
+        Participant p -> concatMap escape p
+        _             -> ""
+
+    escape p =
+      case p of
+        '<' -> "&lt;"
+        '>' -> "&gt;"
+        '"' -> "&quot;"
+        '&' -> "&amp;"
+        '|' -> "&#124;"
+        '{' -> "&#123;"
+        '}' -> "&#125;"
+        '[' -> "&#91;"
+        ']' -> "&#93;"
+        s   -> s : ""
